@@ -20,6 +20,11 @@ git apply path/to/livekit-patch.diff
 3. Download effects SDK release for your platform ([iOS] [android](https://github.com/EffectsSDK/android-integration-sample/releases))
 4. Add Effects SDK as webRTC dependency (to **flutter-webrtc/android/libs** catalog)
 5. Add LiveKit files as dependency to your project
+```yaml
+  dependencies:
+    livekit_client:
+      path: /path/to/client-sdk-flutter
+```
 
 Make sure all repository path in pubspec.yaml set correctly
 
