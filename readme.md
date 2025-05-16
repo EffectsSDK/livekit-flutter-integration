@@ -5,22 +5,33 @@ Tested for **LiveKit v2.4.6** and **webRTC v0.14.0**
 ## Instructions
 
 1. Clone flutter [WebRTC](https://github.com/flutter-webrtc/flutter-webrtc) and [LiveKit](https://github.com/livekit/client-sdk-flutter) repositories
+```bash
+git clone https://github.com/flutter-webrtc/flutter-webrtc.git
+git clone https://github.com/livekit/client-sdk-flutter.git
+```
 2. Download patch([WebRTC](webRTC-patch.diff) and [livekit](livekit-patch.diff)) from this repository and apply it
-3. Download effects SDK release for your platform
-4. Add Effects SDK as webRTC dependency (to **webRTC_repo_root/android/libs** catalog)
-5. Add LiveKit repo as dependency to your project
+```bash
+cd flutter-webrtc
+git apply path/to/webRTC-patch.diff
 
-Make sure all repository in pubspec.yaml set correctly
+cd client-sdk-flutter
+git apply path/to/livekit-patch.diff
+```
+3. Download effects SDK release for your platform ([iOS] [android](https://github.com/EffectsSDK/android-integration-sample/releases))
+4. Add Effects SDK as webRTC dependency (to **flutter-webrtc/android/libs** catalog)
+5. Add LiveKit files as dependency to your project
+
+Make sure all repository path in pubspec.yaml set correctly
 
 ## LiveKit demo app
 
-We made some changes in **livekit_repo_root/example** app, so you can build it as is from patched repository
+We made some changes in **client-sdk-flutter/example** app, so you can build it as is from patched repository
 
 ## How to use
 
 1. Create cameraVideoTrack by using LocalVideoTrack.createCameraTrack() with effectsEdkRequired flag
 2. Call auth() method with your customer key
-3. Set Effects SDK parameters for you video track
+3. Set Effects SDK parameters for your video track
 
 ```dart
 _videoTrack = await LocalVideoTrack.createCameraTrack(
@@ -70,3 +81,4 @@ Also you can replace CameraPipeline to lite version of it.
 
 1. Platform documentation (iOS, [android](https://github.com/EffectsSDK/android-integration-sample))
 2. Effects SDK [site](https://effectssdk.ai/)
+
