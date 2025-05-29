@@ -1,6 +1,6 @@
 # Effects SDK flutter LiveKit integration
 
-Tested for **LiveKit v2.4.6** and **webRTC v0.14.0**
+Tested for **LiveKit v2.4.6** and **flutter-webrtc v0.14.0**
 
 ## Instructions
 
@@ -9,22 +9,27 @@ Tested for **LiveKit v2.4.6** and **webRTC v0.14.0**
 git clone https://github.com/flutter-webrtc/flutter-webrtc.git
 git clone https://github.com/livekit/client-sdk-flutter.git
 ```
-2. Download patch([WebRTC](webRTC-patch.diff) and [livekit](livekit-patch.diff)) from this repository and apply it
+2. Download patch([flutter-webrtc](flutter-webrtc-effects-sdk.patch) and [livekit](livekit-client-flutter-effects-sdk.patch)) from this repository and apply it
 ```bash
 cd flutter-webrtc
-git apply path/to/webRTC-patch.diff
+git switch -d v0.14.0
+curl https://raw.githubusercontent.com/EffectsSDK/livekit-flutter-integration/refs/heads/main/flutter-webrtc-effects-sdk.patch | git apply
 
 cd client-sdk-flutter
-git apply path/to/livekit-patch.diff
+git switch -d v2.4.6
+curl https://raw.githubusercontent.com/EffectsSDK/livekit-flutter-integration/refs/heads/main/livekit-client-flutter-effects-sdk.patch | git apply
 ```
-3. Download effects SDK release for your platform ([iOS] [android](https://github.com/EffectsSDK/android-integration-sample/releases))
-4. Add Effects SDK as webRTC dependency (to **flutter-webrtc/android/libs** catalog)
-5. Add LiveKit files as dependency to your project
+3. Add LiveKit files as dependency to your project
 ```yaml
-  dependencies:
-    livekit_client:
-      path: /path/to/client-sdk-flutter
+dependencies:
+  livekit_client:
+    path: /path/to/client-sdk-flutter
 ```
+
+### Android
+
+4. Download the Video Effects SDK release for android platform. [Releases](https://github.com/EffectsSDK/android-integration-sample/releases)
+5. Add the Video Effects SDK as flutter-webrtc dependency (to **flutter-webrtc/android/libs** catalog)
 
 Make sure all repository path in pubspec.yaml set correctly
 
@@ -71,9 +76,19 @@ You can manage all sdk parameters without VideoTrack recreation.
 ## EffectsSDK methods
 
 Check platform specifications:
-1. [iOS]
+1. [iOS](https://github.com/EffectsSDK/swift-video-effects-sdk)
 2. [android](https://github.com/EffectsSDK/android-integration-sample)
 
+### Effects SDK Image
+
+class EffectsSdkImage - image proxy for iOS/android compatibility.
+
+Can be created from:
+
+1. raw data
+2. file
+3. encoded data
+4. rgb color
 
 ## Technical details
 
@@ -84,6 +99,6 @@ Also you can replace CameraPipeline to lite version of it.
 
 ## Additional links
 
-1. Platform documentation (iOS, [android](https://github.com/EffectsSDK/android-integration-sample))
+1. Platform documentation ([iOS](https://effectssdk.ai/sdk/ios/documentation/tsvb), [android](https://github.com/EffectsSDK/android-integration-sample))
 2. Effects SDK [site](https://effectssdk.ai/)
 

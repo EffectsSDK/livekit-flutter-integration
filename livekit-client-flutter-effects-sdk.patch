@@ -1,0 +1,474 @@
+diff --git a/example/android/.gitignore b/example/android/.gitignore
+index 0a741cb..fcbd420 100644
+--- a/example/android/.gitignore
++++ b/example/android/.gitignore
+@@ -4,6 +4,7 @@ gradle-wrapper.jar
+ /gradlew
+ /gradlew.bat
+ /local.properties
++/app/.cxx
+ GeneratedPluginRegistrant.java
+ 
+ # Remember to never publicly share your keystore.
+diff --git a/example/android/app/build.gradle b/example/android/app/build.gradle
+index 9381281..d6b4019 100644
+--- a/example/android/app/build.gradle
++++ b/example/android/app/build.gradle
+@@ -42,3 +42,16 @@ android {
+ flutter {
+     source = "../.."
+ }
++
++dependencies {
++    // CameraX
++    implementation "androidx.camera:camera-core:1.3.0-alpha04"
++    implementation "androidx.camera:camera-camera2:1.3.0-alpha04"
++    implementation "androidx.camera:camera-lifecycle:1.3.0-alpha04"
++    implementation "androidx.camera:camera-view:1.3.0-alpha04"
++
++    //sdk dependency
++    implementation 'com.google.flogger:flogger:0.6'
++    implementation 'com.google.flogger:flogger-system-backend:0.6'
++    implementation 'com.google.guava:guava:27.0.1-android'
++}
+\ No newline at end of file
+diff --git a/example/ios/Runner/AppDelegate.swift b/example/ios/Runner/AppDelegate.swift
+index 71503bb..fd16997 100644
+--- a/example/ios/Runner/AppDelegate.swift
++++ b/example/ios/Runner/AppDelegate.swift
+@@ -1,7 +1,7 @@
+ import UIKit
+ import Flutter
+ 
+-@UIApplicationMain
++@main
+ @objc class AppDelegate: FlutterAppDelegate {
+ 
+     override func application(
+diff --git a/example/lib/pages/prejoin.dart b/example/lib/pages/prejoin.dart
+index a7eccb0..f3501e6 100644
+--- a/example/lib/pages/prejoin.dart
++++ b/example/lib/pages/prejoin.dart
+@@ -50,6 +50,11 @@ class _PreJoinPageState extends State<PreJoinPage> {
+ 
+   bool _busy = false;
+   bool _enableVideo = true;
++  bool paused = false;
++  bool _remove = false;
++  bool _blur = true;
++  bool _colorCorrection = false;
++  bool _smartZoom = false;
+   bool _enableAudio = true;
+   LocalAudioTrack? _audioTrack;
+   LocalVideoTrack? _videoTrack;
+@@ -109,6 +114,62 @@ class _PreJoinPageState extends State<PreJoinPage> {
+     setState(() {});
+   }
+ 
++  Future<void> _pauseVideoTrack(value) async {
++    paused = value;
++    if (paused) {
++      await _videoTrack?.disable();
++    } else {
++      await _videoTrack?.enable();
++    }
++    setState(() {});
++  }
++
++  Future<void> _setReplaceModeSdk(value) async {
++    _remove = value;
++    if (_remove) {
++      _blur = false;
++      _videoTrack!.setPipelineMode(PipelineMode.replace);
++      _videoTrack!.setBackgroundImage(EffectsSdkImage.fromRGB(r: 1, g: 0.1, b: 0.7));
++    } else {
++      _videoTrack!.setPipelineMode(PipelineMode.noEffects);
++    }
++    setState(() {});
++  }
++
++  Future<void> _setBlurModeSdk(value) async {
++    _blur = value;
++    if (_blur) {
++      _remove = false;
++      _videoTrack!.setPipelineMode(PipelineMode.blur);
++      _videoTrack!.setBlurPower(0.7);
++    } else {
++      _videoTrack!.setPipelineMode(PipelineMode.noEffects);
++    }
++    setState(() {});
++  }
++
++  Future<void> _setColorCorrectionSdk(value) async {
++    _colorCorrection = value;
++    if (_colorCorrection){
++      _videoTrack!.setColorCorrectionMode(ColorCorrectionMode.colorCorrectionMode);
++      _videoTrack!.setColorFilterStrength(0.5);
++    } else {
++      _videoTrack!.setColorCorrectionMode(ColorCorrectionMode.noFilterMode);
++      _videoTrack!.setColorFilterStrength(0.0);
++    }
++    setState(() {});
++  }
++
++  Future<void> _setSmartZoomSdk(value) async {
++    _smartZoom = value;
++    if (_smartZoom) {
++      _videoTrack!.setZoomLevel(0.5);
++    } else {
++      _videoTrack!.setZoomLevel(0);
++    }
++    setState(() {});
++  }
++
+   Future<void> _setEnableAudio(value) async {
+     _enableAudio = value;
+     if (!_enableAudio) {
+@@ -143,12 +204,31 @@ class _PreJoinPageState extends State<PreJoinPage> {
+     }
+ 
+     if (_selectedVideoDevice != null) {
+-      _videoTrack =
+-          await LocalVideoTrack.createCameraTrack(CameraCaptureOptions(
++      _videoTrack = await LocalVideoTrack.createCameraTrack(CameraCaptureOptions(
+         deviceId: _selectedVideoDevice!.deviceId,
+         params: _selectedVideoParameters,
++        // set effects SDK parameter to true
++        effectsSdkRequired: true,
+       ));
+       await _videoTrack!.start();
++      // initialize Effects SDK
++      AuthStatus status = await _videoTrack!.auth('YOUR_CUSTOMER_KEY');
++      switch (status){
++        case AuthStatus.active:
++          //Set pipeline options
++          _videoTrack!.setPipelineMode(PipelineMode.blur);
++          _videoTrack!.setBlurPower(0.75);
++          break;
++        case AuthStatus.expired:
++          // TODO: Handle this case as you need.
++          break;
++        case AuthStatus.inactive:
++          // TODO: Handle this case as you need.
++          break;
++        case AuthStatus.unavailable:
++          // TODO: Handle this case as you need.
++          break;
++      }
+     }
+   }
+ 
+@@ -318,6 +398,71 @@ class _PreJoinPageState extends State<PreJoinPage> {
+                         ],
+                       ),
+                     ),
++                    Padding(
++                      padding: const EdgeInsets.only(bottom: 5),
++                      child: Row(
++                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++                        children: [
++                          const Text('Pause video:'),
++                          Switch(
++                            value: paused,
++                            onChanged: (value) => _pauseVideoTrack(value),
++                          ),
++                        ],
++                      ),
++                    ),
++                    Padding(
++                      padding: const EdgeInsets.only(bottom: 5),
++                      child: Row(
++                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++                        children: [
++                          const Text('Remove:'),
++                          Switch(
++                            value: _remove,
++                            onChanged: (value) => _setReplaceModeSdk(value),
++                          ),
++                        ],
++                      ),
++                    ),
++                    Padding(
++                      padding: const EdgeInsets.only(bottom: 5),
++                      child: Row(
++                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++                        children: [
++                          const Text('Blur:'),
++                          Switch(
++                            value: _blur,
++                            onChanged: (value) => _setBlurModeSdk(value),
++                          ),
++                        ],
++                      ),
++                    ),
++                    Padding(
++                      padding: const EdgeInsets.only(bottom: 5),
++                      child: Row(
++                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++                        children: [
++                          const Text('SmartZoom:'),
++                          Switch(
++                            value: _smartZoom,
++                            onChanged: (value) => _setSmartZoomSdk(value),
++                          ),
++                        ],
++                      ),
++                    ),
++                    Padding(
++                      padding: const EdgeInsets.only(bottom: 5),
++                      child: Row(
++                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++                        children: [
++                          const Text('ColorCorrection:'),
++                          Switch(
++                            value: _colorCorrection,
++                            onChanged: (value) => _setColorCorrectionSdk(value),
++                          ),
++                        ],
++                      ),
++                    ),
+                     Padding(
+                       padding: const EdgeInsets.only(bottom: 25),
+                       child: DropdownButtonHideUnderline(
+diff --git a/example/lib/theme.dart b/example/lib/theme.dart
+index 09b6fca..bd41c73 100644
+--- a/example/lib/theme.dart
++++ b/example/lib/theme.dart
+@@ -68,7 +68,7 @@ class LiveKitTheme {
+             return Colors.white.withValues(alpha: 0.3);
+           }),
+         ),
+-        dialogTheme: DialogTheme(
++        dialogTheme: DialogThemeData(
+           backgroundColor: cardColor,
+           shape: RoundedRectangleBorder(
+             borderRadius: BorderRadius.circular(8),
+diff --git a/lib/livekit_client.dart b/lib/livekit_client.dart
+index 43d0850..f03f802 100644
+--- a/lib/livekit_client.dart
++++ b/lib/livekit_client.dart
+@@ -61,3 +61,5 @@ export 'src/widgets/video_track_renderer.dart';
+ export 'src/data_stream/stream_reader.dart';
+ export 'src/data_stream/stream_writer.dart';
+ export 'src/types/data_stream.dart';
++
++export 'package:flutter_webrtc/flutter_webrtc.dart' show EffectsSdkImage;
+diff --git a/lib/src/track/local/video.dart b/lib/src/track/local/video.dart
+index 44d3afc..cf31a11 100644
+--- a/lib/src/track/local/video.dart
++++ b/lib/src/track/local/video.dart
+@@ -254,6 +254,80 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
+ // Convenience extensions
+ //
+ extension LocalVideoTrackExt on LocalVideoTrack {
++  /**
++      Effects SDK get\set extension. Use it to control effects SDK options
++   */
++  Future<rtc.AuthStatus> auth(String customerID, {String? apiUrl}) async {
++    return rtc.Helper.auth(mediaStreamTrack, customerID, apiUrl:apiUrl);
++  }
++
++  Future<rtc.AuthStatus> localAuth(String localKey) async {
++    return rtc.Helper.localAuth(mediaStreamTrack, localKey);;
++  }
++
++  Future<rtc.PipelineMode> getPipelineMode() async {
++    return rtc.Helper.getEffectsSdkPipelineMode(mediaStreamTrack);
++  }
++
++  void setPipelineMode(rtc.PipelineMode mode) {
++    rtc.Helper.setEffectsSdkPipelineMode(mediaStreamTrack, mode);
++  }
++
++  void setBlurPower(double blurPower) {
++    rtc.Helper.setEffectsSdkBlurPower(mediaStreamTrack, blurPower);
++  }
++
++  void setBackgroundImage(rtc.EffectsSdkImage image) {
++    rtc.Helper.setEffectsSdkBackgroundImage(mediaStreamTrack, image);
++  }
++
++  void enableBeautification(bool enable) {
++    rtc.Helper.enableEffectsSdkBeautification(mediaStreamTrack, enable);
++  }
++
++  Future<bool> isBeautificationEnabled() async {
++    return rtc.Helper.isEffectsSdkBeautificationEnabled(mediaStreamTrack);
++  }
++
++  void setBeautificationPower(double power) {
++    rtc.Helper.setEffectsSdkBeautificationPower(mediaStreamTrack, power);
++  }
++
++  Future<double> getZoomLevel() async {
++    return rtc.Helper.getEffectsSdkZoomLevel(mediaStreamTrack);
++  }
++
++  void setZoomLevel(double zoomLevel) {
++    rtc.Helper.setEffectsSdkZoomLevel(mediaStreamTrack, zoomLevel);
++  }
++
++  void enableSharpening(bool enable) {
++    rtc.Helper.enableEffectsSdkSharpening(mediaStreamTrack, enable);
++  }
++
++  Future<double> getSharpeningStrength() async {
++    return rtc.Helper.getEffectsSdkSharpeningStrength(mediaStreamTrack);
++  }
++
++  void setSharpeningStrength(double strength) {
++    rtc.Helper.setEffectsSdkSharpeningStrength(mediaStreamTrack, strength);
++  }
++
++  void setColorCorrectionMode(rtc.ColorCorrectionMode colorCorrectionMode) {
++    rtc.Helper.setEffectsSdkColorCorrectionMode(
++        mediaStreamTrack,
++        colorCorrectionMode
++    );
++  }
++
++  void setColorFilterStrength(double strength) {
++    rtc.Helper.setEffectsSdkColorFilterStrength(mediaStreamTrack, strength);
++  }
++
++  void setColorGradingReferenceImage(rtc.EffectsSdkImage reference) {
++    rtc.Helper.setEffectsSdkColorGradingReferenceImage(mediaStreamTrack, reference);
++  }
++
+   // Calls restartTrack under the hood
+   Future<void> setCameraPosition(CameraPosition position) async {
+     final options = currentOptions;
+diff --git a/lib/src/track/options.dart b/lib/src/track/options.dart
+index b7e63ff..ec82419 100644
+--- a/lib/src/track/options.dart
++++ b/lib/src/track/options.dart
+@@ -63,11 +63,13 @@ class CameraCaptureOptions extends VideoCaptureOptions {
+     String? deviceId,
+     double? maxFrameRate,
+     VideoParameters params = VideoParametersPresets.h720_169,
++    bool? effectsSdkRequired,
+     this.stopCameraCaptureOnMute = true,
+     TrackProcessor<VideoProcessorOptions>? processor,
+   }) : super(
+           params: params,
+           deviceId: deviceId,
++          effectsSdkRequired: effectsSdkRequired,
+           maxFrameRate: maxFrameRate,
+           processor: processor,
+         );
+@@ -80,6 +82,7 @@ class CameraCaptureOptions extends VideoCaptureOptions {
+         super(
+           params: captureOptions.params,
+           deviceId: captureOptions.deviceId,
++          effectsSdkRequired: captureOptions.effectsSdkRequired,
+           maxFrameRate: captureOptions.maxFrameRate,
+         );
+ 
+@@ -91,6 +94,7 @@ class CameraCaptureOptions extends VideoCaptureOptions {
+         'facingMode':
+             cameraPosition == CameraPosition.front ? 'user' : 'environment'
+     };
++    constraints['effectsSdkRequired'] = effectsSdkRequired;
+     if (deviceId != null && deviceId!.isNotEmpty) {
+       if (kIsWeb) {
+         if (isChrome129OrLater()) {
+@@ -223,6 +227,7 @@ abstract class VideoCaptureOptions extends LocalTrackOptions {
+   /// List<DesktopCapturerSource> desktopSources = await rtc.desktopCapturer.getSources(types: [rtc.SourceType.Screen, rtc.SourceType.Window]);
+   /// </pre>
+   final String? deviceId;
++  final bool? effectsSdkRequired;
+ 
+   // Limit the maximum frameRate of the capture device.
+   final double? maxFrameRate;
+@@ -233,6 +238,7 @@ abstract class VideoCaptureOptions extends LocalTrackOptions {
+   const VideoCaptureOptions({
+     this.params = VideoParametersPresets.h540_169,
+     this.deviceId,
++    this.effectsSdkRequired,
+     this.maxFrameRate,
+     this.processor,
+   });
+diff --git a/pubspec.lock b/pubspec.lock
+index b39f0ae..2cd7406 100644
+--- a/pubspec.lock
++++ b/pubspec.lock
+@@ -141,10 +141,10 @@ packages:
+     dependency: "direct main"
+     description:
+       name: dart_webrtc
+-      sha256: "8565f1f1f412b8a6fd862f3a157560811e61eeeac26741c735a5d2ff409a0202"
++      sha256: "5b76fd85ac95d6f5dee3e7d7de8d4b51bfbec1dc73804647c6aebb52d6297116"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.5.3"
++    version: "1.5.3+hotfix.2"
+   dbus:
+     dependency: transitive
+     description:
+@@ -219,11 +219,10 @@ packages:
+   flutter_webrtc:
+     dependency: "direct main"
+     description:
+-      name: flutter_webrtc
+-      sha256: "4f0d6e248f178e617f249b6a2f432b5981e3300c2896fc8d476fc2aa1f525547"
+-      url: "https://pub.dev"
+-    source: hosted
+-    version: "0.13.1"
++      path: "../flutter-webrtc-patch"
++      relative: false
++    source: path
++    version: "0.14.0"
+   glob:
+     dependency: transitive
+     description:
+@@ -328,6 +327,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.16.0"
++  mime_type:
++    dependency: "direct main"
++    description:
++      name: mime_type
++      sha256: d652b613e84dac1af28030a9fba82c0999be05b98163f9e18a0849c6e63838bb
++      url: "https://pub.dev"
++    source: hosted
++    version: "1.0.1"
+   mockito:
+     dependency: "direct dev"
+     description:
+@@ -353,7 +360,7 @@ packages:
+     source: hosted
+     version: "2.2.0"
+   path:
+-    dependency: transitive
++    dependency: "direct main"
+     description:
+       name: path
+       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
+@@ -593,10 +600,10 @@ packages:
+     dependency: transitive
+     description:
+       name: webrtc_interface
+-      sha256: e92afec11152a9ccb5c9f35482754edd99696e886ab6acaf90c06dd2d09f09eb
++      sha256: "86fe3afc81a08481dfb25cf14a5a94e27062ecef25544783f352c914e0bbc1ca"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.2.2+hotfix.1"
++    version: "1.2.2+hotfix.2"
+   win32:
+     dependency: transitive
+     description:
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 1f1a41e..d08a9ef 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -37,7 +37,8 @@ dependencies:
+   uuid: ^4.5.1
+   synchronized: ^3.0.0+3
+   protobuf: ^3.0.0
+-  flutter_webrtc: ^0.14.0
++  flutter_webrtc:
++    path: ../flutter-webrtc-patch
+   device_info_plus: ^11.3.0
+   dart_webrtc: ^1.5.3
+   sdp_transform: ^0.3.2
