@@ -1,5 +1,9 @@
 # Effects SDK flutter LiveKit integration
 
+> **⚠️ Important:** This repository has moved!  
+> Please see the new location: [livekit-client-sdk-flutter](https://github.com/EffectsSDK/livekit-client-sdk-flutter)
+
+
 Tested for **LiveKit v2.4.6** and **flutter-webrtc v0.14.0**
 
 ## Instructions
